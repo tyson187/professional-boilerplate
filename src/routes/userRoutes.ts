@@ -1,15 +1,19 @@
 import { Router } from 'express';
 import { UserController } from '../controllers/userController';
 import { validate } from '../middleware/validate';
-import { 
-    createUserSchema, 
-    updateUserSchema, 
+import { authMiddleware } from '../middleware/auth';
+import {
+    createUserSchema,
+    updateUserSchema,
     idParamSchema,
-    paginationQuerySchema 
+    paginationQuerySchema
 } from '../dto/user.dto';
 import { asyncHandler } from '../utils/asyncHandler';
 
 export const userRoutes = Router();
+
+// All /api/users routes require a valid Bearer token
+userRoutes.use(authMiddleware);
 
 userRoutes.get(
     '/',

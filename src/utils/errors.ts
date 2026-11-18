@@ -22,7 +22,8 @@ export class AppError extends Error {
 export class NotFoundError extends AppError {
     constructor(resource: string, id?: string | number) {
         const message = id
-            ? `${resource} with ID idnotfound` : `{resource} not found`;
+            ? `${resource} with ID ${id} not found`
+            : `${resource} not found`;
         super(message, 404, 'NOT_FOUND');
     }
 }

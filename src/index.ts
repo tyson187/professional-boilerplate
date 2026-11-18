@@ -3,15 +3,16 @@ import express from 'express';
 import { config } from './config/env';
 import { AppDataSource } from './config/data-source';
 import { logger } from './utils/logger';
-import { 
-    helmetMiddleware, 
-    corsMiddleware, 
-    apiLimiter 
+import {
+    helmetMiddleware,
+    corsMiddleware,
+    apiLimiter
 } from './middleware/security';
 import { requestLoggingMiddleware } from './middleware/requestLogger';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { userRoutes } from './routes/userRoutes';
 import { healthRoutes } from './routes/healthRoutes';
+import { authRoutes } from './routes/authRoutes';
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use('/api/', apiLimiter);
 app.use(requestLoggingMiddleware);
 
 app.use('/health', healthRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 
 app.use(notFoundHandler);
@@ -33,20 +35,21 @@ const startServer = async () => {
     try {
         await AppDataSource.initialize();
         logger.info('✅ Database connected successfully');
-        
+
         if (config.isProd) {
             await AppDataSource.runMigrations();
             logger.info('✅ Migrations executed');
         }
-        
+
         const server = app.listen(config.port, () => {
             logger.info(`🚀 Server running on port ${config.port}`);
-            logger.info(`📝 Environment: config.env`);logger.info(`🔗Healthcheck:http://localhost:{config.port}/health`);
+            logger.info(`📝 Environment: ${config.env}`);
+            logger.info(`🔗 Healthcheck: http://localhost:${config.port}/health`);
         });
-        
+
         const gracefulShutdown = async (signal: string) => {
             logger.info(`${signal} received. Starting graceful shutdown...`);
-            
+
             server.close(async () => {
                 logger.info('HTTP server closed');
                 await AppDataSource.destroy();
@@ -54,16 +57,16 @@ const startServer = async () => {
                 logger.info('✅ Graceful shutdown complete');
                 process.exit(0);
             });
-            
+
             setTimeout(() => {
                 logger.error('Forced shutdown due to timeout');
                 process.exit(1);
             }, 10000);
         };
-        
+
         process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
         process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-        
+
     } catch (error) {
         logger.error('❌ Failed to start server:', error);
         process.exit(1);
